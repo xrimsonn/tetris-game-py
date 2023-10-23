@@ -1,6 +1,6 @@
 # Define las piezas Tetris como matrices
 pieces = {
-    'block': [
+    'B': [
         [1, 1],
         [1, 1]
     ],

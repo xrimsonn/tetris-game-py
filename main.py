@@ -1,24 +1,26 @@
+import sched
+import time
 import pygame
 from tetris_pieces import pieces
 import random
 
-# Inicializa Pygame
 pygame.init()
 
-# Configuración de la pantalla
 screen = pygame.display.set_mode((240, 480))
 pygame.display.set_caption("Tetris")
 
-# Contador para controlar la velocidad de caída
-BLOCK_SIZE = 20 # Tamaño de cada bloque
-fall_counter = 0 # Contador para controlar la velocidad de caída
-fall_speed = 10  # Ajusta la velocidad aquí (mayor valor = cae más lento)
-score = 0 # Puntuación del juego
-rotation_state = 0 # Estado de rotación de la pieza
+BLOCK_SIZE = 20
+fall_counter = 0
+fall_speed = 10
+score = 0
+rotation_state = 0
 w_key_pressed = False
 game_over = False
+highscore = 0
+increased_speed = 15
+delayer = sched.scheduler(time.time, time.sleep)
+minus_speed = 1
 
-# Definir una matriz de 12x24 inicializada a ceros
 board = []
 for i in range(12):
     row = []
@@ -34,14 +36,18 @@ def setPiece():
 
 def draw():
     for i in range(12):
-        for j in range(24):
+        for j in range(24):   
+            rand_gray =random.randrange(60, 150)
+            rand_dark =random.randrange(0, 6)         
             if board[i][j] == 1:
-                pygame.draw.rect(screen, (255, 255, 255), (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+                pygame.draw.rect(screen, (random.randrange(120, 220), random.randrange(120, 220), random.randrange(120, 220)), (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+            elif board[i][j] == 2:
+                pygame.draw.rect(screen, (rand_gray, rand_gray, rand_gray), (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
             else:
-                pygame.draw.rect(screen, (0, 0, 0), (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+                pygame.draw.rect(screen, (rand_dark, rand_dark, rand_dark), (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
     pygame.display.update()
 
-def clearPreviousPosition():
+def clear_previous_position():
     piece = current_piece
     for x in range(len(piece)):
         for y in range(len(piece[0])):
@@ -56,17 +62,14 @@ def init_pieces():
                 if 0 <= piece_x + x < 12 and 0 <= piece_y + y < 24:  # Verifica los límites
                     board[piece_x + x][piece_y + y] = 1
 
-# Función para verificar si la pieza está en una posición válida
 def is_valid_position():
     piece = current_piece
     for x in range(len(piece)):
         for y in range(len(piece[0])):
             if piece[x][y] == 1:
-                # Verifica los límites del tablero
                 if (piece_x + x < 0 or piece_x + x >= 12 or piece_y + y >= 24):
                     return False
-                # Verifica si la celda ya está ocupada
-                if board[piece_x + x][piece_y + y] == 1:
+                if board[piece_x + x][piece_y + y] == 2:
                     return False
     return True
 
@@ -75,24 +78,23 @@ def piece_to_board():
     for x in range(len(piece)):
         for y in range(len(piece[0])):
             if piece[x][y] == 1:
-                board[piece_x + x][piece_y + y] = 1
+                board[piece_x + x][piece_y + y] = 2
 
 def remove_completed_rows():
-    global score
+    global score, increased_speed
     rows_to_remove = []
     for j in range(24):
-        if all(board[i][j] == 1 for i in range(12)):
+        if all(board[i][j] == 2 for i in range(12)):
             rows_to_remove.append(j)
     for row in rows_to_remove:
         for j in range(row, 0, -1):
             for i in range(12):
                 board[i][j] = board[i][j - 1]
+        print(increased_speed)
     return len(rows_to_remove)
 
 def rotate_clockwise(piece):
-    # Calcula la nueva matriz de la pieza rotada
     rotated_piece = [[piece[y][x] for y in range(len(piece))] for x in range(len(piece[0]))]
-    # Invierte el orden de las filas para obtener la rotación en sentido horario
     rotated_piece = rotated_piece[::-1]
     return rotated_piece
 
@@ -106,20 +108,9 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    all_columns_have_one = all(any(board[i][j] == 1 for i in range(12)) for j in range(24))
+    all_columns_have_one = all(any(board[i][j] == 2 for i in range(12)) for j in range(24))
     if all_columns_have_one:
         game_over = True
-
-    #print(game_over)
-
-    #for fila in board:
-    #  # Iterar a través de los elementos de cada fila
-    #  for elemento in fila:
-    #      # Imprimir el elemento seguido de un espacio en la misma línea
-    #      print(elemento, end=" ")
-    #  # Imprimir un salto de línea al final de cada fila
-    #  print()
-
 
     if game_over:
         keys = pygame.key.get_pressed()
@@ -136,14 +127,14 @@ while running:
 
     if keys[pygame.K_a] and piece_x > 0:
         # Mover hacia la izquierda (A) y verificar los límites
-        clearPreviousPosition()
+        clear_previous_position()
         piece_x -= 1
         if not is_valid_position():
             piece_x += 1  # Deshace el movimiento si no es válido
 
     if keys[pygame.K_d] and piece_x + len(current_piece) < 12:
         # Mover hacia la derecha (D) y verificar los límites
-        clearPreviousPosition()
+        clear_previous_position()
         piece_x += 1
         if not is_valid_position():
             piece_x -= 1  # Deshace el movimiento si no es válido
@@ -157,7 +148,7 @@ while running:
                 w_key_pressed = False
 
     if keys[pygame.K_w]:
-        clearPreviousPosition()
+        clear_previous_position()
         # Rotar la pieza en sentido horario
         current_piece = rotate_clockwise(current_piece)
         rotation_state = (rotation_state + 1) % 4  # Actualiza el estado de rotación
@@ -168,15 +159,14 @@ while running:
             current_piece = rotate_clockwise(current_piece)
             rotation_state = (rotation_state - 3) % 4
 
-    # Control de la velocidad de caída
     if keys[pygame.K_s]:
-        fall_speed = 1  # Ajusta la velocidad de caída más rápida
+        fall_speed = 1
     else:
-        fall_speed = 10  # Restablece la velocidad de caída normal
+        fall_speed = increased_speed
 
     fall_counter += 1
     if fall_counter >= fall_speed:
-        clearPreviousPosition()
+        clear_previous_position()
         piece_y += 1
         if not is_valid_position():
             piece_y -= 1  # Deshace el movimiento si no es válido
@@ -184,9 +174,25 @@ while running:
             num_rows_removed = remove_completed_rows()
             if num_rows_removed > 0:
                 score += num_rows_removed * 12
-                print(score)
+                if score > highscore:
+                    with open('highscore', 'w') as file:
+                        file.write(str(score))
+                if score % 24 == 0 and score != 0:
+                    if increased_speed > 1:
+                        increased_speed -= minus_speed
+                        minus_speed += 1
+                print(f'Highscore: {highscore}')
+                print(f'Score: {score}')
+                print(f'Increased_speed: {increased_speed}')
             setPiece()  # Inicializa una nueva pieza
         fall_counter = 0
+
+    try:
+        with open('highscore', 'r') as file:
+            highscore = int(file.readline())
+    except FileNotFoundError:
+        with open('highscore', 'w') as file:
+            file.write(str(highscore))
 
     # Dibuja el tablero
     init_pieces()
@@ -196,3 +202,4 @@ while running:
 
 # Cierra Pygame al salir del bucle
 pygame.quit()
+file.close()
