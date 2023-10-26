@@ -2,3 +2,4 @@ __pycache__
 tetris_python.spec
 build/
 dist/
+highscore
