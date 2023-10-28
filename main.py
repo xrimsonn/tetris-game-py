@@ -9,8 +9,9 @@ import random
 MIN_WINDOW_WIDTH = 120
 MIN_WINDOW_HEIGHT = 240
 SCREEN_WIDTH = 240
-SCREEN_HEIGHT = 480
+SCREEN_HEIGHT = 600
 pygame.init()
+font = pygame.font.Font("./assets/BlockPix-pqXK.ttf", 36)
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Tetris")
 
@@ -58,11 +59,12 @@ def recalculate_block_size():
 def draw():
     for i in range(12):
         for j in range(24):
+            rand_color = random.randrange(120, 220)
             rand_gray = random.randrange(60, 150)
             rand_dark = random.randrange(0, 6)
             if board[i][j] == 1:
-                pygame.draw.rect(screen, (random.randrange(120, 220), random.randrange(
-                    120, 220), random.randrange(120, 220)), (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+                pygame.draw.rect(screen, (rand_color, rand_color, rand_color),
+                                 (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
             elif board[i][j] == 2:
                 pygame.draw.rect(screen, (rand_gray, rand_gray, rand_gray),
                                  (i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
@@ -154,7 +156,7 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w and not wkey_pressed:
                 wkey_pressed = True
@@ -190,6 +192,15 @@ while running:
             continue
 
     keys = pygame.key.get_pressed()
+    
+    # Check if the player pressed "a" or "d" to move the piece
+    if keys[pygame.K_r]:
+        # Reinicia el juego
+        board = [[0] * 24 for _ in range(12)]
+        score = 0
+        increased_speed = 12
+        game_over = False
+        setPiece()
 
     # Check if the player pressed "a" or "d" to move the piece
     if keys[pygame.K_a] and piece_x > 0:
@@ -204,22 +215,19 @@ while running:
         if not is_valid_position():
             piece_x -= 1
 
-    # Check if the player pressed "w" to rotate the piece
-    # if keys[pygame.K_w]:
-    #     clear_previous_position()
-    #     current_piece = rotate_clockwise(current_piece)
-    #     rotation_state = (rotation_state + 1) % 4
-    #     if not is_valid_position():
-    #         current_piece = rotate_clockwise(current_piece)
-    #         current_piece = rotate_clockwise(current_piece)
-    #         current_piece = rotate_clockwise(current_piece)
-    #         rotation_state = (rotation_state - 3) % 4
-
     # Check if the player pressed "s" to increase the speed of the piece
     if keys[pygame.K_s]:
         fall_speed = 1
     else:
         fall_speed = increased_speed
+
+    # Save the highscore in a file
+    try:
+        with open('highscore', 'r') as file:
+            highscore = int(file.readline())
+    except FileNotFoundError:
+        with open('highscore', 'w') as file:
+            file.write(str(highscore))
 
     # Check the fall speed of the piece
     fall_counter += 1
@@ -235,33 +243,22 @@ while running:
                 score += num_rows_removed * 12
                 # Check if the player beat the highscore
                 if score > highscore:
+                    # Write the highscore in a file
                     with open('highscore', 'w') as file:
                         file.write(str(score))
                 # Increase the speed of the pieces
                 if score % 60 == 0 and score != 0:
                     if increased_speed > 1:
                         increased_speed -= minus_speed
-                        # minus_speed += 1
-                try:
-                    with open('highscore', 'r') as file:
-                        highscore = int(file.readline())
-                except FileNotFoundError:
-                    with open('highscore', 'w') as file:
-                        file.write(str(highscore))
-                print(f'Highscore: {highscore}')
-                print(f'Score: {score}')
-                print(f'Increased_speed: {increased_speed}')
             setPiece()
         fall_counter = 0
-
-        # Write the highscore in a file
 
     # Draw the board
     init_pieces()
     draw()
 
     # Set the FPS
-    clock.tick(10)
+    clock.tick(12)
 
 # Close the game
 pygame.quit()
